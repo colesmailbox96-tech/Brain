@@ -26,6 +26,7 @@ install_manifest.txt
 logs/
 data_logs/
 training_data/
+npc_states/
 
 # ONNX models
 *.onnx
