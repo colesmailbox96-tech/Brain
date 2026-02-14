@@ -7,6 +7,7 @@
 #include "platform/Window.h"
 #include "rendering/Renderer.h"
 #include "rendering/Camera.h"
+#include "rendering/DebugOverlay.h"
 #include "input/InputManager.h"
 #include <vector>
 #include <memory>
@@ -36,6 +37,7 @@ private:
     std::unique_ptr<Window> window;
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<Camera> camera;
+    std::unique_ptr<DebugOverlay> debugOverlay;
     std::unique_ptr<InputManager> input;
     
     std::unique_ptr<World> world;
@@ -45,6 +47,7 @@ private:
     Tick currentTick = 0;
     float accumulator = 0.0f;
     bool showDebug = false;
+    int selectedNPCIndex = 0;
     bool running = true;
     
     std::mt19937 rng;

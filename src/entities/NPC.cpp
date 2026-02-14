@@ -1,6 +1,7 @@
 #include "NPC.h"
 #include "world/World.h"
 #include "ai/behavior/BehaviorTreeBrain.h"
+#include "ai/neural/NeuralBrain.h"
 #include <random>
 #include <algorithm>
 
@@ -180,6 +181,10 @@ Perception NPC::gatherPerception(const World& world, const std::vector<NPC>& all
     }
     
     return p;
+}
+
+bool NPC::isNeuralBrain() const {
+    return brain && (dynamic_cast<const NeuralBrain*>(brain.get()) != nullptr);
 }
 
 } // namespace pw

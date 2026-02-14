@@ -34,6 +34,10 @@ public:
     
     void setBrain(std::unique_ptr<IBrain> newBrain);
     IBrain* getBrain() { return brain.get(); }
+    const IBrain* getBrain() const { return brain.get(); }
+    
+    // Brain type identification
+    bool isNeuralBrain() const;
     
     // For data logging
     Perception gatherPerception(const World& world, const std::vector<NPC>& allNPCs) const;

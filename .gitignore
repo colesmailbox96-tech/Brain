@@ -25,6 +25,11 @@ install_manifest.txt
 *.log
 logs/
 data_logs/
+training_data/
+
+# ONNX models
+*.onnx
+models/
 
 # Python
 __pycache__/
