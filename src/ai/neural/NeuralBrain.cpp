@@ -418,9 +418,17 @@ std::vector<float> NeuralBrain::runInference(const std::vector<float>& perceptio
     }
     
     try {
-        // Prepare input tensors
+        // Prepare input tensors with correct shapes
+        // Perception: (batch=1, perception_dim=20)
         std::vector<int64_t> perceptionShape = {1, static_cast<int64_t>(perceptionVec.size())};
-        std::vector<int64_t> memoryShape = {1, static_cast<int64_t>(memoryContext.size())};
+        
+        // Memory: (batch=1, seq_len=50, embedding_dim=32)
+        // Memory context is flattened (50 * 32 = 1600), need to reshape
+        std::vector<int64_t> memoryShape = {
+            1,  // batch
+            static_cast<int64_t>(MAX_MEMORY_BUFFER),  // sequence length = 50
+            static_cast<int64_t>(MEMORY_EMBEDDING_DIM)  // embedding dim = 32
+        };
         
         Ort::Value perceptionTensor = Ort::Value::CreateTensor<float>(
             memoryInfo, const_cast<float*>(perceptionVec.data()), perceptionVec.size(),

@@ -158,10 +158,12 @@ class NPCDataset(Dataset):
         outcome = sample.get('outcome', {})
         
         # Valence from need satisfaction
+        # Positive delta = need increased (bad) -> negative valence
+        # Negative delta = need satisfied (good) -> positive valence
         need_deltas = outcome.get('needsDeltas', {})
         if need_deltas:
             avg_delta = np.mean([delta for delta in need_deltas.values()])
-            emotion[0] = -np.tanh(avg_delta)  # Negative delta = satisfied need = positive valence
+            emotion[0] = -np.tanh(avg_delta)  # Negate: negative delta = positive valence
         
         # Arousal from need urgency
         avg_need = (needs['hunger'] + needs['energy'] + needs['safety']) / 3.0

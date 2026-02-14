@@ -219,14 +219,15 @@ void DebugOverlay::renderSocialEmbeddings(
 }
 
 void DebugOverlay::drawText(const std::string& text, int x, int y, const Color& color) {
-    // Simple text rendering using rectangles (pixel-font style)
-    // In a real implementation, would use SDL_ttf or bitmap fonts
-    // For now, just indicate text position with a marker
+    // TODO: Actual text rendering requires SDL_ttf or bitmap font system
+    // This is a placeholder showing where text would be rendered
+    // For production, integrate SDL_ttf:
+    //   TTF_Font* font = TTF_OpenFont("font.ttf", 12);
+    //   SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), sdlColor);
+    //   // Convert surface to texture and render
+    
     renderer.setDrawColor(color);
     renderer.drawRect(Rect{x, y, static_cast<int>(text.length()) * 6, 10}, color, false);
-    
-    // Note: Actual text rendering would require SDL_ttf or similar
-    // This is a placeholder showing where text would be rendered
 }
 
 void DebugOverlay::drawBar(int x, int y, int width, int height, float value,

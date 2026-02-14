@@ -173,8 +173,9 @@ void SocialIntelligence::updateEmbedding(RelationshipEmbedding& rel,
     }
     
     // Add some noise to other dimensions (exploration)
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    // Use a local random generator per call to avoid thread-safety issues
+    std::random_device rd;
+    std::mt19937 gen(rd());
     std::normal_distribution<float> noise(0.0f, 0.01f);
     
     for (size_t i = 3; i < rel.embedding.size(); ++i) {

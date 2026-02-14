@@ -36,6 +36,9 @@ void GameEngine::init() {
         npcs.emplace_back(i, pos);
         
         // Alternate between neural and behavior tree brains (50/50 split)
+        // Note: Neural brain model path is relative to executable working directory
+        // Default: "models/npc_brain.onnx"
+        // TODO: Make model path configurable via command line or config file
         if (i % 2 == 0) {
             // Neural brain
             auto neuralBrain = std::make_unique<NeuralBrain>(i, "models/npc_brain.onnx");
