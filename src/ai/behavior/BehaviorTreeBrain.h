@@ -3,6 +3,7 @@
 #include "ai/interface/IBrain.h"
 #include "ai/memory/NPCMemory.h"
 #include "ai/behavior/Pathfinder.h"
+#include "world/Tile.h"
 #include <random>
 
 namespace pw {
