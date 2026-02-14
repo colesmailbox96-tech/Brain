@@ -1,6 +1,7 @@
 #include "ai/neural/NeuralBrain.h"
 #include "world/World.h"
 #include "world/Tile.h"
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <random>
 #include <cmath>
@@ -26,6 +27,7 @@ float EmotionalState::distance(const EmotionalState& other) const {
 // NeuralBrain implementation
 NeuralBrain::NeuralBrain(EntityId ownerId, const std::string& modelPath)
     : ownerId(ownerId)
+    , socialIntelligence(ownerId)
 #ifdef HAS_ONNX_RUNTIME
     , memoryInfo(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault))
 #endif
@@ -137,17 +139,34 @@ Action NeuralBrain::decide(const Perception& perception, World& world) {
     lastActionProbs = actionProbs;
     
     // Select action from distribution
-    return actionFromProbabilities(actionProbs, perception);
+    Action selectedAction = actionFromProbabilities(actionProbs, perception);
+    
+    // Cache for experience replay
+    lastPerceptionVec = perceptionVec;
+    lastMemoryContext = memoryContext;
+    lastActionIndex = static_cast<int>(selectedAction.type);
+    
+    return selectedAction;
 }
 
 void NeuralBrain::onOutcome(const Outcome& outcome) {
     // Compute reward signal
     float reward = computeReward(outcome);
     
-    // Store for online learning (if enabled)
-    if (replayBuffer.size() < MAX_REPLAY_BUFFER && lastActionProbs.size() == 9) {
-        // We would store the last perception here, simplified for now
-        // In full implementation, cache last perception in decide()
+    // Store for online learning
+    if (replayBuffer.size() < MAX_REPLAY_BUFFER && lastActionIndex >= 0 
+        && !lastPerceptionVec.empty()) {
+        ExperienceReplay exp;
+        exp.perceptionVec = lastPerceptionVec;
+        exp.actionIndex = lastActionIndex;
+        exp.reward = reward;
+        exp.memoryContext = lastMemoryContext;
+        replayBuffer.push_back(std::move(exp));
+        
+        // Apply online update when buffer has enough samples
+        if (replayBuffer.size() >= 10) {
+            applyOnlineUpdate(replayBuffer.back());
+        }
     }
     
     // Update emotional state based on outcome
@@ -492,59 +511,157 @@ float NeuralBrain::computeReward(const Outcome& outcome) const {
 
 void NeuralBrain::updateFromExperience(const Perception& perception, const Action& action,
                                        const Outcome& outcome, float reward) {
-    (void)perception;
-    (void)action;
-    (void)outcome;
-    (void)reward;
-    // Simplified: would implement actual gradient updates here
-    // For now, just store in replay buffer for potential future use
+    // Store in replay buffer
+    ExperienceReplay exp;
+    exp.perceptionVec = perceptionToVector(perception);
+    exp.actionIndex = static_cast<int>(action.type);
+    exp.reward = reward;
+    exp.memoryContext = getMemoryContext();
+    
+    if (replayBuffer.size() >= MAX_REPLAY_BUFFER) {
+        // Remove oldest experience
+        replayBuffer.erase(replayBuffer.begin());
+    }
+    replayBuffer.push_back(std::move(exp));
+    
+    // Update emotional state based on reward
+    emotionalState.valence += reward * 0.05f;
+    emotionalState.clamp();
 }
 
 void NeuralBrain::applyOnlineUpdate(const ExperienceReplay& experience) {
-    (void)experience;
-    // Placeholder for actual online learning update
-    // Would apply reward-modulated Hebbian update or small gradient step
+    // Reward-modulated update: adjust emotional state based on experience quality
+    static constexpr float VALENCE_SCALE = 10.0f;
+    static constexpr float AROUSAL_POSITIVE_SCALE = 5.0f;
+    static constexpr float AROUSAL_NEGATIVE_SCALE = 3.0f;
+    static constexpr float DOMINANCE_SCALE = 2.0f;
+    static constexpr float REWARD_THRESHOLD = 0.5f;
+    
+    float rewardSignal = experience.reward;
+    
+    // Modulate emotional state as a form of "soft learning"
+    emotionalState.valence += rewardSignal * learningRate * VALENCE_SCALE;
+    
+    // High-reward actions in active states increase arousal tendency
+    if (rewardSignal > REWARD_THRESHOLD) {
+        emotionalState.arousal += learningRate * AROUSAL_POSITIVE_SCALE;
+        emotionalState.dominance += learningRate * DOMINANCE_SCALE;
+    } else if (rewardSignal < -REWARD_THRESHOLD) {
+        emotionalState.arousal -= learningRate * AROUSAL_NEGATIVE_SCALE;
+        emotionalState.dominance -= learningRate * DOMINANCE_SCALE;
+    }
+    
+    emotionalState.clamp();
 }
 
 void NeuralBrain::saveState(const std::string& filepath) const {
-    std::ofstream file(filepath, std::ios::binary);
+    std::ofstream file(filepath);
     if (!file.is_open()) return;
     
+    nlohmann::json state;
+    
     // Save emotional state
-    file.write(reinterpret_cast<const char*>(&emotionalState), sizeof(EmotionalState));
+    state["emotional_state"] = {
+        {"valence", emotionalState.valence},
+        {"arousal", emotionalState.arousal},
+        {"dominance", emotionalState.dominance}
+    };
     
-    // Save memory buffer size
-    size_t bufferSize = memoryBuffer.size();
-    file.write(reinterpret_cast<const char*>(&bufferSize), sizeof(size_t));
-    
-    // Save memories (simplified - would need proper serialization)
+    // Save memory buffer
+    nlohmann::json memoriesJson = nlohmann::json::array();
     for (const auto& mem : memoryBuffer) {
-        file.write(reinterpret_cast<const char*>(&mem.memory), sizeof(MemoryEntry));
+        nlohmann::json memJson;
+        memJson["type"] = mem.memory.type;
+        memJson["location"] = {{"x", mem.memory.location.x}, {"y", mem.memory.location.y}};
+        memJson["timestamp"] = mem.memory.timestamp;
+        memJson["significance"] = mem.memory.significance;
+        memJson["attention_weight"] = mem.attentionWeight;
+        memJson["embedding"] = mem.embedding;
+        memoriesJson.push_back(memJson);
     }
+    state["memory_buffer"] = memoriesJson;
     
+    // Save social relationships
+    nlohmann::json socialJson = nlohmann::json::object();
+    for (const auto& [id, rel] : socialIntelligence.getAllRelationships()) {
+        nlohmann::json relJson;
+        relJson["npc_id"] = rel.npcId;
+        relJson["trust"] = rel.trust;
+        relJson["affinity"] = rel.affinity;
+        relJson["last_interaction"] = rel.lastInteraction;
+        relJson["embedding"] = rel.embedding;
+        socialJson[std::to_string(id)] = relJson;
+    }
+    state["social_relationships"] = socialJson;
+    
+    // Save experience replay buffer size (not full buffer, to keep save files small)
+    state["replay_buffer_size"] = replayBuffer.size();
+    state["owner_id"] = ownerId;
+    
+    file << state.dump(2);
     file.close();
 }
 
 void NeuralBrain::loadState(const std::string& filepath) {
-    std::ifstream file(filepath, std::ios::binary);
+    std::ifstream file(filepath);
     if (!file.is_open()) return;
     
+    nlohmann::json state;
+    try {
+        file >> state;
+    } catch (const nlohmann::json::parse_error&) {
+        return;
+    }
+    file.close();
+    
     // Load emotional state
-    file.read(reinterpret_cast<char*>(&emotionalState), sizeof(EmotionalState));
-    
-    // Load memory buffer
-    size_t bufferSize;
-    file.read(reinterpret_cast<char*>(&bufferSize), sizeof(size_t));
-    
-    memoryBuffer.clear();
-    for (size_t i = 0; i < bufferSize; ++i) {
-        MemoryEntry mem;
-        file.read(reinterpret_cast<char*>(&mem), sizeof(MemoryEntry));
-        std::vector<float> embedding(MEMORY_EMBEDDING_DIM, 0.0f);
-        memoryBuffer.emplace_back(mem, embedding);
+    if (state.contains("emotional_state")) {
+        const auto& es = state["emotional_state"];
+        emotionalState.valence = es.value("valence", 0.0f);
+        emotionalState.arousal = es.value("arousal", 0.0f);
+        emotionalState.dominance = es.value("dominance", 0.0f);
+        emotionalState.clamp();
     }
     
-    file.close();
+    // Load memory buffer
+    if (state.contains("memory_buffer")) {
+        memoryBuffer.clear();
+        for (const auto& memJson : state["memory_buffer"]) {
+            MemoryEntry mem;
+            mem.type = memJson.value("type", "");
+            if (memJson.contains("location")) {
+                mem.location.x = memJson["location"].value("x", 0.0f);
+                mem.location.y = memJson["location"].value("y", 0.0f);
+            }
+            mem.timestamp = memJson.value("timestamp", static_cast<Tick>(0));
+            mem.significance = memJson.value("significance", 0.0f);
+            
+            std::vector<float> embedding(MEMORY_EMBEDDING_DIM, 0.0f);
+            if (memJson.contains("embedding")) {
+                const auto& embJson = memJson["embedding"];
+                for (size_t i = 0; i < std::min(embJson.size(), static_cast<size_t>(MEMORY_EMBEDDING_DIM)); ++i) {
+                    embedding[i] = embJson[i].get<float>();
+                }
+            }
+            
+            EpisodicMemory epMem(mem, embedding);
+            epMem.attentionWeight = memJson.value("attention_weight", 0.0f);
+            memoryBuffer.push_back(std::move(epMem));
+        }
+    }
+    
+    // Load social relationships
+    if (state.contains("social_relationships")) {
+        for (const auto& [idStr, relJson] : state["social_relationships"].items()) {
+            try {
+                EntityId npcId = static_cast<EntityId>(std::stoul(idStr));
+                socialIntelligence.recordInteraction(npcId, "neutral", 0.0f, 
+                                                      relJson.value("last_interaction", static_cast<Tick>(0)));
+            } catch (const std::exception&) {
+                // Skip malformed entries
+            }
+        }
+    }
 }
 
 } // namespace pw

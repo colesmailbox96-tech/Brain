@@ -34,6 +34,10 @@ private:
     void renderWeather();
     void renderDebugOverlay();
     
+    // NPC state persistence
+    void saveNPCStates();
+    void loadNPCStates();
+    
     std::unique_ptr<Window> window;
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<Camera> camera;

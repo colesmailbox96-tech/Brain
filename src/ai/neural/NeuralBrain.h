@@ -2,6 +2,7 @@
 
 #include "ai/interface/IBrain.h"
 #include "ai/memory/NPCMemory.h"
+#include "ai/social/SocialIntelligence.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -49,11 +50,15 @@ public:
     // Memory management
     NPCMemory& getMemory() { return memory; }
     
+    // Social intelligence
+    SocialIntelligence& getSocialIntelligence() { return socialIntelligence; }
+    const SocialIntelligence& getSocialIntelligence() const { return socialIntelligence; }
+    
     // Online learning
     void updateFromExperience(const Perception& perception, const Action& action, 
                               const Outcome& outcome, float reward);
     
-    // Serialization
+    // Serialization (JSON-based)
     void saveState(const std::string& filepath) const;
     void loadState(const std::string& filepath);
 
@@ -67,6 +72,7 @@ private:
     
     EntityId ownerId;
     NPCMemory memory;
+    SocialIntelligence socialIntelligence;
     bool modelLoaded = false;
     
     // Neural state
@@ -88,6 +94,11 @@ private:
     std::vector<ExperienceReplay> replayBuffer;
     static constexpr size_t MAX_REPLAY_BUFFER = 100;
     float learningRate = 0.001f;
+    
+    // Cached last perception/action for experience replay
+    std::vector<float> lastPerceptionVec;
+    std::vector<float> lastMemoryContext;
+    int lastActionIndex = -1;
     
     // Helper methods
     std::vector<float> perceptionToVector(const Perception& perception) const;
