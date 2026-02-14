@@ -170,9 +170,16 @@ Perception NPC::gatherPerception(const World& world, const std::vector<NPC>& all
         }
     }
     
-    // Memory recalls (if we have a behavior tree brain)
+    // Memory recalls (from behavior tree or neural brain)
     if (auto* btBrain = dynamic_cast<BehaviorTreeBrain*>(brain.get())) {
         auto memories = btBrain->getMemory().getAllMemories();
+        for (const auto& mem : memories) {
+            if (mem.significance > 0.5f) {
+                p.memoryRecalls.push_back(mem.type);
+            }
+        }
+    } else if (auto* neuralBrain = dynamic_cast<NeuralBrain*>(brain.get())) {
+        auto memories = neuralBrain->getMemory().getAllMemories();
         for (const auto& mem : memories) {
             if (mem.significance > 0.5f) {
                 p.memoryRecalls.push_back(mem.type);

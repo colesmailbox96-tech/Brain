@@ -3,8 +3,8 @@
 #include <cstring>
 
 int main(int argc, char* argv[]) {
-    std::cout << "=== Pixel World Simulator - Milestone 1 ===" << std::endl;
-    std::cout << "The Living Terrarium" << std::endl;
+    std::cout << "=== Pixel World Simulator - Milestone 2 ===" << std::endl;
+    std::cout << "The Awakening" << std::endl;
     std::cout << std::endl;
     
     pw::GameEngine engine;

@@ -1,9 +1,12 @@
 #include "GameEngine.h"
 #include "ai/behavior/BehaviorTreeBrain.h"
 #include "ai/neural/NeuralBrain.h"
+#include "ai/social/SocialIntelligence.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <sstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 namespace pw {
 
@@ -56,6 +59,9 @@ void GameEngine::init() {
     std::cout << "Game initialized with " << npcs.size() << " NPCs:" << std::endl;
     std::cout << "  - " << neuralCount << " Neural Brains" << std::endl;
     std::cout << "  - " << behaviorTreeCount << " Behavior Tree Brains" << std::endl;
+    
+    // Load any previously saved NPC states
+    loadNPCStates();
 }
 
 void GameEngine::run() {
@@ -111,6 +117,7 @@ void GameEngine::run() {
     }
     
     dataLogger->flush();
+    saveNPCStates();
     std::cout << "Simulation ended at tick " << currentTick << std::endl;
 }
 
@@ -127,6 +134,7 @@ void GameEngine::runHeadless(int ticks) {
     }
     
     dataLogger->flush();
+    saveNPCStates();
     std::cout << "Headless simulation completed: " << currentTick << " ticks" << std::endl;
 }
 
@@ -207,6 +215,27 @@ void GameEngine::update(float dt) {
                     {"distance", dist}
                 };
                 dataLogger->logEvent(currentTick, "npc_met", eventData);
+                
+                // Record social interactions for neural NPCs
+                static constexpr float DEFAULT_MEETING_VALENCE = 0.1f;
+                if (auto* nb1 = dynamic_cast<NeuralBrain*>(npcs[i].getBrain())) {
+                    nb1->getSocialIntelligence().recordInteraction(
+                        npcs[j].getId(), "neutral", DEFAULT_MEETING_VALENCE, currentTick);
+                }
+                if (auto* nb2 = dynamic_cast<NeuralBrain*>(npcs[j].getBrain())) {
+                    nb2->getSocialIntelligence().recordInteraction(
+                        npcs[i].getId(), "neutral", DEFAULT_MEETING_VALENCE, currentTick);
+                }
+            }
+        }
+    }
+    
+    // Periodic social relationship decay
+    static constexpr Tick SOCIAL_DECAY_INTERVAL = 100;
+    if (currentTick % SOCIAL_DECAY_INTERVAL == 0) {
+        for (auto& npc : npcs) {
+            if (auto* nb = dynamic_cast<NeuralBrain*>(npc.getBrain())) {
+                nb->getSocialIntelligence().decayRelationships(currentTick);
             }
         }
     }
@@ -338,6 +367,32 @@ void GameEngine::renderDebugOverlay() {
         // Render debug panel
         if (debugOverlay) {
             debugOverlay->renderNPCDebug(selectedNPC, VIRTUAL_WIDTH - 410, 10);
+        }
+    }
+}
+
+void GameEngine::saveNPCStates() {
+    for (auto& npc : npcs) {
+        if (auto* neuralBrain = dynamic_cast<NeuralBrain*>(npc.getBrain())) {
+            std::string filepath = "npc_states/npc_" + std::to_string(npc.getId()) + "_state.json";
+            
+            // Create directory
+            #ifdef _WIN32
+                _mkdir("npc_states");
+            #else
+                mkdir("npc_states", 0755);
+            #endif
+            
+            neuralBrain->saveState(filepath);
+        }
+    }
+}
+
+void GameEngine::loadNPCStates() {
+    for (auto& npc : npcs) {
+        if (auto* neuralBrain = dynamic_cast<NeuralBrain*>(npc.getBrain())) {
+            std::string filepath = "npc_states/npc_" + std::to_string(npc.getId()) + "_state.json";
+            neuralBrain->loadState(filepath);
         }
     }
 }
