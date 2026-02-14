@@ -152,8 +152,8 @@ void GameEngine::handleInput() {
         showDebug = !showDebug;
     }
     
-    // Cycle through NPCs for debug (Tab key)
-    if (input->isKeyJustPressed(SDLK_TAB) && !npcs.empty()) {
+    // Cycle through NPCs for debug
+    if (input->isActionJustPressed(InputAction::CycleNPC) && !npcs.empty()) {
         selectedNPCIndex = (selectedNPCIndex + 1) % npcs.size();
     }
 }
@@ -294,11 +294,7 @@ void GameEngine::renderWeather() {
 
 void GameEngine::renderDebugOverlay() {
     // Draw simple debug info at top-left
-    int y = 5;
-    int lineHeight = 10;
-    
     Color textBg(0, 0, 0, 180);
-    Color textFg(255, 255, 255);
     
     // Background for text
     renderer->drawRect(Rect(0, 0, 200, 80), textBg, true);

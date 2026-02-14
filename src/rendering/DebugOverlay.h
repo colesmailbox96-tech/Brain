@@ -3,8 +3,10 @@
 #include "rendering/Renderer.h"
 #include "entities/NPC.h"
 #include "ai/neural/NeuralBrain.h"
+#include "ai/social/SocialIntelligence.h"
 #include <vector>
 #include <string>
+#include <map>
 
 namespace pw {
 

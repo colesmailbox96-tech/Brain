@@ -18,17 +18,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-# ONNX Runtime for neural inference
-FetchContent_Declare(
-    onnxruntime
-    URL https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
-    URL_HASH SHA256=9d6c7921e3131c3a8b8f4b1e3f0b1c7c3d3d3e3f3e3f3e3f3e3f3e3f3e3f3e3f
-)
-FetchContent_GetProperties(onnxruntime)
-if(NOT onnxruntime_POPULATED)
-    FetchContent_Populate(onnxruntime)
-    set(ONNXRUNTIME_INCLUDE_DIR ${onnxruntime_SOURCE_DIR}/include)
-    set(ONNXRUNTIME_LIB_DIR ${onnxruntime_SOURCE_DIR}/lib)
+# ONNX Runtime for neural inference (optional - will use fallback if not available)
+# Download ONNX Runtime manually if needed:
+# https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
+set(ONNXRUNTIME_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/onnxruntime/include" CACHE PATH "ONNX Runtime include directory")
+set(ONNXRUNTIME_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/onnxruntime/lib" CACHE PATH "ONNX Runtime library directory")
+
+if(EXISTS ${ONNXRUNTIME_INCLUDE_DIR})
+    message(STATUS "ONNX Runtime found at ${ONNXRUNTIME_INCLUDE_DIR}")
+else()
+    message(WARNING "ONNX Runtime not found - neural brain will use fallback behavior")
+    message(WARNING "To enable neural inference, download ONNX Runtime and extract to external/onnxruntime/")
 endif()
 
 # Source files

@@ -11,11 +11,13 @@ void InputManager::processEvent(const SDL_Event& event) {
         mapKeyToAction(event.key.keysym.sym, InputAction::ZoomIn, true);
         mapKeyToAction(event.key.keysym.sym, InputAction::ZoomOut, true);
         mapKeyToAction(event.key.keysym.sym, InputAction::ToggleDebug, true);
+        mapKeyToAction(event.key.keysym.sym, InputAction::CycleNPC, true);
     } else if (event.type == SDL_KEYUP) {
         mapKeyToAction(event.key.keysym.sym, InputAction::MoveUp, false);
         mapKeyToAction(event.key.keysym.sym, InputAction::MoveDown, false);
         mapKeyToAction(event.key.keysym.sym, InputAction::MoveLeft, false);
         mapKeyToAction(event.key.keysym.sym, InputAction::MoveRight, false);
+        mapKeyToAction(event.key.keysym.sym, InputAction::CycleNPC, false);
     } else if (event.type == SDL_MOUSEMOTION) {
         mouseX = event.motion.x;
         mouseY = event.motion.y;
@@ -48,6 +50,9 @@ void InputManager::mapKeyToAction(SDL_Keycode key, InputAction action, bool pres
             break;
         case InputAction::ToggleDebug:
             if (key == SDLK_F3) currentState[action] = pressed;
+            break;
+        case InputAction::CycleNPC:
+            if (key == SDLK_TAB) currentState[action] = pressed;
             break;
         default:
             break;

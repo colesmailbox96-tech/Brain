@@ -14,7 +14,8 @@ enum class InputAction {
     ZoomOut,
     Select,
     Cancel,
-    ToggleDebug
+    ToggleDebug,
+    CycleNPC
 };
 
 class InputManager {
