@@ -12,7 +12,7 @@ DebugOverlay::DebugOverlay(Renderer& renderer) : renderer(renderer) {
 
 void DebugOverlay::renderNPCDebug(const NPC& npc, int screenX, int screenY) {
     // Panel background
-    renderer.drawRect(Rect{screenX, screenY, 400, 500}, Color{0, 0, 0, 200}, true);
+    renderer.drawRect(Rect{screenX, screenY, 400, 600}, Color{0, 0, 0, 200}, true);
     
     int yOffset = screenY + 10;
     const int lineHeight = 15;
@@ -80,6 +80,15 @@ void DebugOverlay::renderNPCDebug(const NPC& npc, int screenX, int screenY) {
                 yOffset += lineHeight;
             } else {
                 renderMemoryActivations(memories, panelX, yOffset, 200, 80, 5);
+                yOffset += 90;
+            }
+            
+            // Social relationships
+            const auto& relationships = neuralBrain->getSocialIntelligence().getAllRelationships();
+            if (!relationships.empty()) {
+                drawText("=== SOCIAL ===", panelX, yOffset, {150, 255, 200});
+                yOffset += lineHeight;
+                renderSocialEmbeddings(relationships, panelX, yOffset, 200, 80, 5);
                 yOffset += 90;
             }
         }

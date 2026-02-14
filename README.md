@@ -10,9 +10,10 @@ Neural network-based NPC AI built on the Milestone 1 foundation. NPCs now use le
 - **Episodic Memory**: Attention mechanism over significant past experiences influences decisions
 - **Emotional Model**: 3D emotional state (valence/arousal/dominance) emerges from neural network
 - **Social Intelligence**: Learned relationship embeddings enable emergent trust, rivalry, and group dynamics
-- **Enhanced Debug Overlay**: Visualize perception vectors, memory attention, emotions, action probabilities
+- **On-Device Learning**: Reward-modulated online learning via experience replay buffer
+- **State Persistence**: NPC brain state (emotions, memories, social bonds) saved/loaded as JSON
+- **Enhanced Debug Overlay**: Visualize perception vectors, memory attention, emotions, action probabilities, social relationships
 - **Training Pipeline**: PyTorch-based transformer training on Milestone 1 behavior tree data
-- **On-Device Learning**: NPCs continue adapting during gameplay (future enhancement)
 
 ## Milestone 1 — THE LIVING TERRARIUM
 
@@ -163,6 +164,24 @@ This creates PyTorch-ready numpy arrays:
 python tools/export_training_data.py --stats
 ```
 
+## State Persistence
+
+Neural NPC states are automatically saved and loaded between sessions:
+
+```bash
+# States are saved to npc_states/ when simulation ends
+ls npc_states/
+# npc_0_state.json  npc_2_state.json  npc_4_state.json ...
+```
+
+Each state file contains:
+- **Emotional state**: Valence, arousal, dominance values
+- **Memory buffer**: Episodic memories with embeddings and attention weights
+- **Social relationships**: Relationship embeddings with trust/affinity metrics
+- **Experience replay size**: Number of stored learning experiences
+
+States are saved as human-readable JSON, making it easy to inspect and modify NPC personalities.
+
 ## Architecture
 
 ```
@@ -174,9 +193,9 @@ python tools/export_training_data.py --stats
   /ai
     /interface   — IBrain abstract interface
     /behavior    — Behavior trees, pathfinding (Milestone 1)
-    /neural      — Neural brain with ONNX Runtime (Milestone 2)
+    /neural      — Neural brain with ONNX Runtime, online learning (Milestone 2)
     /memory      — Episodic memory with significance scoring
-    /social      — Relationship embeddings (Milestone 2)
+    /social      — Relationship embeddings, social intelligence (Milestone 2)
   /rendering     — Procedural sprites, camera, debug overlay
   /input         — Input abstraction
   /data          — Perception-decision-outcome logging
@@ -217,7 +236,6 @@ The same `IBrain` interface means you can directly compare behavior tree and neu
 
 ## Future Enhancements
 
-- **On-Device Learning**: Real-time weight updates via reward-modulated Hebbian plasticity
 - **Reinforcement Learning**: Train with PPO or similar for goal-directed behavior
 - **Multi-Agent Coordination**: Emergent cooperation from relationship embeddings
 - **Mobile Deployment**: Run neural NPCs on iOS/Android with optimized ONNX Runtime
