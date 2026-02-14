@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 #include "ai/behavior/BehaviorTreeBrain.h"
+#include "ai/neural/NeuralBrain.h"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <sstream>
@@ -18,6 +19,9 @@ void GameEngine::init() {
     std::uniform_real_distribution<float> xDist(10.0f, WORLD_WIDTH - 10.0f);
     std::uniform_real_distribution<float> yDist(10.0f, WORLD_HEIGHT - 10.0f);
     
+    int neuralCount = 0;
+    int behaviorTreeCount = 0;
+    
     for (int i = 0; i < 15; i++) {
         Vec2 pos(xDist(rng), yDist(rng));
         
@@ -30,12 +34,25 @@ void GameEngine::init() {
         }
         
         npcs.emplace_back(i, pos);
+        
+        // Alternate between neural and behavior tree brains (50/50 split)
+        if (i % 2 == 0) {
+            // Neural brain
+            auto neuralBrain = std::make_unique<NeuralBrain>(i, "models/npc_brain.onnx");
+            npcs.back().setBrain(std::move(neuralBrain));
+            neuralCount++;
+        } else {
+            // Behavior tree brain (default)
+            behaviorTreeCount++;
+        }
     }
     
     // Initialize data logger
     dataLogger = std::make_unique<DataLogger>();
     
-    std::cout << "Game initialized with " << npcs.size() << " NPCs" << std::endl;
+    std::cout << "Game initialized with " << npcs.size() << " NPCs:" << std::endl;
+    std::cout << "  - " << neuralCount << " Neural Brains" << std::endl;
+    std::cout << "  - " << behaviorTreeCount << " Behavior Tree Brains" << std::endl;
 }
 
 void GameEngine::run() {
@@ -47,6 +64,7 @@ void GameEngine::run() {
     
     renderer = std::make_unique<Renderer>(window->getRenderer());
     camera = std::make_unique<Camera>(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    debugOverlay = std::make_unique<DebugOverlay>(*renderer);
     input = std::make_unique<InputManager>();
     
     // Center camera on world
@@ -132,6 +150,11 @@ void GameEngine::handleInput() {
     // Toggle debug
     if (input->isActionJustPressed(InputAction::ToggleDebug)) {
         showDebug = !showDebug;
+    }
+    
+    // Cycle through NPCs for debug (Tab key)
+    if (input->isKeyJustPressed(SDLK_TAB) && !npcs.empty()) {
+        selectedNPCIndex = (selectedNPCIndex + 1) % npcs.size();
     }
 }
 
@@ -303,6 +326,21 @@ void GameEngine::renderDebugOverlay() {
     // Time of day indicator
     int todX = static_cast<int>(world->getTimeOfDay() * 180) + 10;
     renderer->drawRect(Rect(todX, 45, 5, 10), Color(255, 255, 0), true);
+    
+    // Render detailed NPC debug panel for selected NPC
+    if (!npcs.empty() && selectedNPCIndex < static_cast<int>(npcs.size())) {
+        const NPC& selectedNPC = npcs[selectedNPCIndex];
+        
+        // Highlight selected NPC
+        Vec2 screenPos = camera->worldToScreen(selectedNPC.getPosition());
+        renderer->drawCircle(static_cast<int>(screenPos.x), static_cast<int>(screenPos.y), 
+                           12, Color(255, 255, 0), false);
+        
+        // Render debug panel
+        if (debugOverlay) {
+            debugOverlay->renderNPCDebug(selectedNPC, VIRTUAL_WIDTH - 410, 10);
+        }
+    }
 }
 
 } // namespace pw
