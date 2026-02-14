@@ -217,21 +217,22 @@ void GameEngine::update(float dt) {
                 dataLogger->logEvent(currentTick, "npc_met", eventData);
                 
                 // Record social interactions for neural NPCs
-                float interactionValence = 0.1f;  // Neutral-positive for meeting
+                static constexpr float DEFAULT_MEETING_VALENCE = 0.1f;
                 if (auto* nb1 = dynamic_cast<NeuralBrain*>(npcs[i].getBrain())) {
                     nb1->getSocialIntelligence().recordInteraction(
-                        npcs[j].getId(), "neutral", interactionValence, currentTick);
+                        npcs[j].getId(), "neutral", DEFAULT_MEETING_VALENCE, currentTick);
                 }
                 if (auto* nb2 = dynamic_cast<NeuralBrain*>(npcs[j].getBrain())) {
                     nb2->getSocialIntelligence().recordInteraction(
-                        npcs[i].getId(), "neutral", interactionValence, currentTick);
+                        npcs[i].getId(), "neutral", DEFAULT_MEETING_VALENCE, currentTick);
                 }
             }
         }
     }
     
     // Periodic social relationship decay
-    if (currentTick % 100 == 0) {
+    static constexpr Tick SOCIAL_DECAY_INTERVAL = 100;
+    if (currentTick % SOCIAL_DECAY_INTERVAL == 0) {
         for (auto& npc : npcs) {
             if (auto* nb = dynamic_cast<NeuralBrain*>(npc.getBrain())) {
                 nb->getSocialIntelligence().decayRelationships(currentTick);

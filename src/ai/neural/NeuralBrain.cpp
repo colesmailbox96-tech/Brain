@@ -531,19 +531,24 @@ void NeuralBrain::updateFromExperience(const Perception& perception, const Actio
 
 void NeuralBrain::applyOnlineUpdate(const ExperienceReplay& experience) {
     // Reward-modulated update: adjust emotional state based on experience quality
-    // High reward → positive emotional shift; low reward → negative shift
+    static constexpr float VALENCE_SCALE = 10.0f;
+    static constexpr float AROUSAL_POSITIVE_SCALE = 5.0f;
+    static constexpr float AROUSAL_NEGATIVE_SCALE = 3.0f;
+    static constexpr float DOMINANCE_SCALE = 2.0f;
+    static constexpr float REWARD_THRESHOLD = 0.5f;
+    
     float rewardSignal = experience.reward;
     
     // Modulate emotional state as a form of "soft learning"
-    emotionalState.valence += rewardSignal * learningRate * 10.0f;
+    emotionalState.valence += rewardSignal * learningRate * VALENCE_SCALE;
     
     // High-reward actions in active states increase arousal tendency
-    if (rewardSignal > 0.5f) {
-        emotionalState.arousal += learningRate * 5.0f;
-        emotionalState.dominance += learningRate * 2.0f;
-    } else if (rewardSignal < -0.5f) {
-        emotionalState.arousal -= learningRate * 3.0f;
-        emotionalState.dominance -= learningRate * 2.0f;
+    if (rewardSignal > REWARD_THRESHOLD) {
+        emotionalState.arousal += learningRate * AROUSAL_POSITIVE_SCALE;
+        emotionalState.dominance += learningRate * DOMINANCE_SCALE;
+    } else if (rewardSignal < -REWARD_THRESHOLD) {
+        emotionalState.arousal -= learningRate * AROUSAL_NEGATIVE_SCALE;
+        emotionalState.dominance -= learningRate * DOMINANCE_SCALE;
     }
     
     emotionalState.clamp();
@@ -648,10 +653,13 @@ void NeuralBrain::loadState(const std::string& filepath) {
     // Load social relationships
     if (state.contains("social_relationships")) {
         for (const auto& [idStr, relJson] : state["social_relationships"].items()) {
-            EntityId npcId = static_cast<EntityId>(std::stoul(idStr));
-            // Record a neutral interaction to create the relationship, then update embedding
-            socialIntelligence.recordInteraction(npcId, "neutral", 0.0f, 
-                                                  relJson.value("last_interaction", static_cast<Tick>(0)));
+            try {
+                EntityId npcId = static_cast<EntityId>(std::stoul(idStr));
+                socialIntelligence.recordInteraction(npcId, "neutral", 0.0f, 
+                                                      relJson.value("last_interaction", static_cast<Tick>(0)));
+            } catch (const std::exception&) {
+                // Skip malformed entries
+            }
         }
     }
 }
