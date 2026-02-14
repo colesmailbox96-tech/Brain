@@ -182,4 +182,10 @@ Perception NPC::gatherPerception(const World& world, const std::vector<NPC>& all
     return p;
 }
 
+bool NPC::isNeuralBrain() const {
+    // Forward declaration handled by include
+    // Will check brain type at runtime
+    return brain && (dynamic_cast<const class NeuralBrain*>(brain.get()) != nullptr);
+}
+
 } // namespace pw
