@@ -13,11 +13,11 @@ class World;
 
 // NPC Needs system
 struct Needs {
-    float hunger = 0.5f;     // 0.0 = full, 1.0 = starving
-    float energy = 0.5f;     // 0.0 = exhausted, 1.0 = need rest
-    float social = 0.5f;     // 0.0 = lonely, 1.0 = need alone time
+    float hunger = 0.5f;     // 0.0 = full, 1.0 = starving (urgent need)
+    float energy = 0.5f;     // 0.0 = rested, 1.0 = exhausted (urgent need to rest)
+    float social = 0.5f;     // 0.0 = content alone, 1.0 = lonely (urgent need for interaction)
     float curiosity = 0.5f;  // 0.0 = content, 1.0 = need exploration
-    float safety = 0.9f;     // 0.0 = safe, 1.0 = threatened
+    float safety = 0.9f;     // 0.0 = safe, 1.0 = threatened (starts high, decreases over time)
     
     void update(float dt);
     float getMostUrgent() const;

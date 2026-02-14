@@ -22,12 +22,12 @@ class DataProcessor:
         decisions_file = self.log_dir / "decisions.jsonl"
         events_file = self.log_dir / "events.jsonl"
         
-        if decisions_file.exists():
+        if decisionsfile.exists():
             with open(decisions_file, 'r') as f:
                 for line in f:
                     try:
                         data = json.loads(line.strip())
-                        if 'tick' in data:  # Skip schema version line
+                        if 'tick' in data:  # Only process decision entries (skip schema version line)
                             self.decisions.append(data)
                     except json.JSONDecodeError:
                         continue
